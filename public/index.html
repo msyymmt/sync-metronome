@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sync Metronome</title>
+    <link rel="stylesheet" href="style.css?v=2">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- 役割選択画面 -->
+        <div id="roleSelection" class="screen active">
+            <div class="header">
+                <div class="logo" onclick="toggleDebugLog()">🎵</div>
+                <h1>Sync Metronome</h1>
+                <p class="subtitle">バンド練習用 同期メトロノーム</p>
+            </div>
+
+            <div class="role-buttons">
+                <button class="role-btn host-btn" onclick="selectRole('host')">
+                    <span class="icon">📡</span>
+                    <div class="btn-text">
+                        <strong>ホストとして開始</strong>
+                        <span>BPMを設定して他のメンバーを待つ</span>
+                    </div>
+                    <span class="arrow">→</span>
+                </button>
+
+                <button class="role-btn client-btn" onclick="selectRole('client')">
+                    <span class="icon">👥</span>
+                    <div class="btn-text">
+                        <strong>メンバーとして参加</strong>
+                        <span>ホストのメトロノームに同期する</span>
+                    </div>
+                    <span class="arrow">→</span>
+                </button>
+            </div>
+
+            <p class="footer-note">全員が同じWiFiに接続していることを確認してください</p>
+        </div>
+
+        <!-- ホスト画面 -->
+        <div id="hostScreen" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="goBack()">← 戻る</button>
+                <h2 onclick="toggleDebugLog()">ホスト</h2>
+            </div>
+
+            <div class="card connection-card">
+                <div class="card-header">
+                    <span class="status-icon">📡</span>
+                    <span>接続待機中...</span>
+                </div>
+                <div id="roomIdDisplay"></div>
+                <div id="connectedClients">
+                    <p class="waiting-text">参加者を待っています</p>
+                </div>
+            </div>
+
+            <div class="card bpm-card">
+                <div class="bpm-display">
+                    <span id="bpmValue">120</span>
+                </div>
+                <div class="bpm-label">BPM</div>
+                <div class="bpm-controls">
+                    <button class="control-btn" onclick="adjustBpm(-1)">−</button>
+                    <input type="range" id="bpmSlider" min="40" max="240" value="120" oninput="updateBpm(this.value)">
+                    <button class="control-btn" onclick="adjustBpm(1)">+</button>
+                </div>
+            </div>
+
+            <div class="card signature-card">
+                <div class="card-title">拍子</div>
+                <div class="signature-buttons">
+                    <button class="sig-btn active" data-beats="4" data-unit="4"
+                        onclick="selectSignature(this)">4/4</button>
+                    <button class="sig-btn" data-beats="3" data-unit="4" onclick="selectSignature(this)">3/4</button>
+                    <button class="sig-btn" data-beats="2" data-unit="4" onclick="selectSignature(this)">2/4</button>
+                    <button class="sig-btn" data-beats="6" data-unit="8" onclick="selectSignature(this)">6/8</button>
+                </div>
+                <label class="toggle-label">
+                    <input type="checkbox" id="countInToggle" checked>
+                    <span>カウントイン（1小節）</span>
+                </label>
+            </div>
+
+            <!-- beat-card 削除 -->
+
+            <button id="hostPlayBtn" class="play-btn start" onclick="togglePlayHost()">
+                <span class="play-icon">▶</span>
+                <span>開始</span>
+            </button>
+        </div>
+
+        <!-- クライアント画面 -->
+        <div id="clientScreen" class="screen">
+            <div class="screen-header">
+                <button class="back-btn" onclick="goBack()">← 戻る</button>
+                <h2 onclick="toggleDebugLog()">メンバー</h2>
+            </div>
+
+            <div class="card connection-card">
+                <div class="card-header" id="clientConnectionStatus">
+                    <span class="status-icon">🔍</span>
+                    <span>ホストを探しています</span>
+                </div>
+                <div id="roomList">
+                    <p class="searching-text">
+                        <span class="spinner"></span>
+                        ホストを検索中...
+                    </p>
+                </div>
+            </div>
+
+            <div id="clientControls" class="hidden">
+                <div class="card bpm-card">
+                    <div class="bpm-display">
+                        <span id="clientBpmValue">120</span>
+                    </div>
+                    <div class="bpm-label">BPM</div>
+                    <div id="clientSignature" class="signature-display">4/4</div>
+                </div>
+
+                <!-- beat-card 削除 -->
+
+                <div class="card status-card">
+                    <div id="clientPlayStatus" class="play-status">
+                        <span class="status-dot"></span>
+                        <span>待機中</span>
+                    </div>
+                    <div id="syncOffset" class="sync-info"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=12"></script>
+</body>
+
+</html>
