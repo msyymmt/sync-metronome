@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#3b82f6">
+    <meta name="theme-color" content="#1a1a2e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Sync Metronome</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.svg">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <script src="/socket.io/socket.io.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,55 +20,70 @@
 
 <body>
     <div id="offlineBanner" class="offline-banner" style="display:none;">
-        <span>オフラインモード — ソロメトロノームのみ利用可能</span>
+        <span>Offline — Solo mode only</span>
     </div>
     <div class="app-container">
         <!-- 役割選択画面 -->
         <div id="roleSelection" class="screen active">
             <div class="header">
-                <div class="logo" onclick="toggleDebugLog()">🎵</div>
+                <div class="logo" onclick="toggleDebugLog()">
+                    <img src="/icon.svg" alt="Sync Metronome">
+                </div>
                 <h1>Sync Metronome</h1>
-                <p class="subtitle">バンド練習用 同期メトロノーム</p>
+                <p class="subtitle">Band Practice Sync</p>
             </div>
 
             <div class="role-buttons">
                 <button class="role-btn host-btn" onclick="selectRole('host')">
-                    <span class="icon">📡</span>
                     <div class="btn-text">
-                        <strong>ホストとして開始</strong>
-                        <span>BPMを設定して他のメンバーを待つ</span>
+                        <strong>Host</strong>
+                        <span>Set BPM and wait for members</span>
                     </div>
-                    <span class="arrow">→</span>
                 </button>
 
                 <button class="role-btn client-btn" onclick="selectRole('client')">
-                    <span class="icon">👥</span>
                     <div class="btn-text">
-                        <strong>メンバーとして参加</strong>
-                        <span>ホストのメトロノームに同期する</span>
+                        <strong>Join</strong>
+                        <span>Sync to host's metronome</span>
                     </div>
-                    <span class="arrow">→</span>
                 </button>
             </div>
 
-            <p class="footer-note">全員が同じWiFiに接続していることを確認してください</p>
+            <p class="footer-note">
+                Connect via same WiFi or tethering<br>
+                <span class="help-link" onclick="toggleHelp()">How to connect without WiFi?</span>
+            </p>
+        </div>
+
+        <!-- テザリングヘルプモーダル -->
+        <div id="helpModal" class="help-modal-overlay" onclick="toggleHelp()">
+            <div class="help-modal" onclick="event.stopPropagation()">
+                <h3>Connecting without WiFi</h3>
+                <p>No WiFi at the studio? Use phone tethering to create a local network:</p>
+                <ol>
+                    <li>One member turns on mobile hotspot</li>
+                    <li>Everyone else connects to that hotspot</li>
+                    <li>Open Sync Metronome — you're synced!</li>
+                </ol>
+                <p>Works with any mobile data (4G/5G). The host phone can also be the hotspot.</p>
+                <button class="help-modal-close" onclick="toggleHelp()">Got it</button>
+            </div>
         </div>
 
         <!-- ホスト画面 -->
         <div id="hostScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" onclick="goBack()">← 戻る</button>
-                <h2 onclick="toggleDebugLog()">ホスト</h2>
+                <button class="back-btn" onclick="goBack()">Back</button>
+                <h2 onclick="toggleDebugLog()">Host</h2>
             </div>
 
             <div class="card connection-card">
                 <div class="card-header">
-                    <span class="status-icon">📡</span>
-                    <span>接続待機中...</span>
+                    <span>Waiting for members...</span>
                 </div>
                 <div id="roomIdDisplay"></div>
                 <div id="connectedClients">
-                    <p class="waiting-text">参加者を待っています</p>
+                    <p class="waiting-text">No members yet</p>
                 </div>
             </div>
 
@@ -78,51 +93,51 @@
                 </div>
                 <div class="bpm-label">BPM</div>
                 <div class="bpm-controls">
-                    <button class="control-btn" onclick="adjustBpm(-1)">−</button>
-                    <input type="range" id="bpmSlider" min="40" max="240" value="120" oninput="updateBpm(this.value)">
+                    <button class="control-btn" onclick="adjustBpm(-1)">-</button>
+                    <input type="range" id="bpmSlider" min="40" max="240" value="120"
+                        oninput="updateBpm(this.value)">
                     <button class="control-btn" onclick="adjustBpm(1)">+</button>
                 </div>
             </div>
 
-            <div class="card signature-card">
-                <div class="card-title">拍子</div>
+            <div class="card">
+                <div class="card-title">Time Signature</div>
                 <div class="signature-buttons">
                     <button class="sig-btn active" data-beats="4" data-unit="4"
                         onclick="selectSignature(this)">4/4</button>
-                    <button class="sig-btn" data-beats="3" data-unit="4" onclick="selectSignature(this)">3/4</button>
-                    <button class="sig-btn" data-beats="2" data-unit="4" onclick="selectSignature(this)">2/4</button>
-                    <button class="sig-btn" data-beats="6" data-unit="8" onclick="selectSignature(this)">6/8</button>
+                    <button class="sig-btn" data-beats="3" data-unit="4"
+                        onclick="selectSignature(this)">3/4</button>
+                    <button class="sig-btn" data-beats="2" data-unit="4"
+                        onclick="selectSignature(this)">2/4</button>
+                    <button class="sig-btn" data-beats="6" data-unit="8"
+                        onclick="selectSignature(this)">6/8</button>
                 </div>
                 <label class="toggle-label">
                     <input type="checkbox" id="countInToggle" checked>
-                    <span>カウントイン（1小節）</span>
+                    <span>Count-in (1 bar)</span>
                 </label>
             </div>
 
-            <!-- beat-card 削除 -->
-
             <button id="hostPlayBtn" class="play-btn start" onclick="togglePlayHost()">
-                <span class="play-icon">▶</span>
-                <span>開始</span>
+                <span class="play-icon">&#9654;</span>
             </button>
         </div>
 
         <!-- クライアント画面 -->
         <div id="clientScreen" class="screen">
             <div class="screen-header">
-                <button class="back-btn" onclick="goBack()">← 戻る</button>
-                <h2 onclick="toggleDebugLog()">メンバー</h2>
+                <button class="back-btn" onclick="goBack()">Back</button>
+                <h2 onclick="toggleDebugLog()">Member</h2>
             </div>
 
             <div class="card connection-card">
                 <div class="card-header" id="clientConnectionStatus">
-                    <span class="status-icon">🔍</span>
-                    <span>ホストを探しています</span>
+                    <span>Looking for host...</span>
                 </div>
                 <div id="roomList">
                     <p class="searching-text">
                         <span class="spinner"></span>
-                        ホストを検索中...
+                        Searching...
                     </p>
                 </div>
             </div>
@@ -136,12 +151,10 @@
                     <div id="clientSignature" class="signature-display">4/4</div>
                 </div>
 
-                <!-- beat-card 削除 -->
-
-                <div class="card status-card">
+                <div class="card">
                     <div id="clientPlayStatus" class="play-status">
                         <span class="status-dot"></span>
-                        <span>待機中</span>
+                        <span>Standby</span>
                     </div>
                     <div id="syncOffset" class="sync-info"></div>
                 </div>
@@ -149,7 +162,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').then((reg) => {

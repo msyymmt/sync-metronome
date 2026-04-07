@@ -251,7 +251,7 @@ async function calculateOffset() {
 
         // 画面にも表示
         const syncInfo = document.getElementById('syncOffset');
-        if (syncInfo) syncInfo.textContent = `同期補正: ${timeOffset.toFixed(0)}ms`;
+        if (syncInfo) syncInfo.textContent = `Sync offset: ${timeOffset.toFixed(0)}ms`;
     } else {
         showDebug('⚠️ 時刻同期に失敗しました');
     }
@@ -266,7 +266,7 @@ function updateRoomList(rooms) {
     listElement.innerHTML = '';
 
     if (rooms.length === 0) {
-        listElement.innerHTML = '<div class="room-item">ルームが見つかりません</div>';
+        listElement.innerHTML = '<div class="room-item">No rooms found</div>';
         return;
     }
 
@@ -291,12 +291,12 @@ function updateClientCount(count) {
 
     if (count > 0) {
         container.innerHTML = `
-            <div class="client-item" style="justify-content:center; color: var(--accent-green);">
-                ✅ ${count}人が接続中
+            <div class="client-item" style="justify-content:center;">
+                ${count} member${count > 1 ? 's' : ''} connected
             </div>
         `;
     } else {
-        container.innerHTML = '<p class="waiting-text">参加者を待っています</p>';
+        container.innerHTML = '<p class="waiting-text">No members yet</p>';
     }
 }
 
@@ -361,7 +361,7 @@ function updateUI() {
 
         const statusHeader = document.getElementById('clientConnectionStatus');
         if (statusHeader) {
-            statusHeader.innerHTML = '<span class="status-icon">✅</span><span>ホストに接続中</span>';
+            statusHeader.innerHTML = '<span>Connected to host</span>';
         }
     }
 }
@@ -585,7 +585,7 @@ function updatePlayButton(playing) {
     if (role === 'host') {
         const btn = document.getElementById('hostPlayBtn');
         if (btn) {
-            btn.innerHTML = playing ? '<span class="play-icon">■</span><span>停止</span>' : '<span class="play-icon">▶</span><span>開始</span>';
+            btn.innerHTML = playing ? '<span class="play-icon">&#9632;</span>' : '<span class="play-icon">&#9654;</span>';
             btn.className = playing ? 'play-btn stop' : 'play-btn start';
         }
     } else {
@@ -594,10 +594,10 @@ function updatePlayButton(playing) {
             const text = status.querySelector('span:last-child');
             if (playing) {
                 status.classList.add('playing');
-                if (text) text.textContent = '再生中';
+                if (text) text.textContent = 'Playing';
             } else {
                 status.classList.remove('playing');
-                if (text) text.textContent = '待機中';
+                if (text) text.textContent = 'Standby';
             }
         }
     }
@@ -622,3 +622,12 @@ document.addEventListener('click', async () => {
 
 // 初期ロード時のオフライン状態反映
 updateOnlineStatus();
+
+// テザリングヘルプモーダル
+function toggleHelp() {
+    const modal = document.getElementById('helpModal');
+    if (modal) {
+        modal.classList.toggle('active');
+    }
+}
+window.toggleHelp = toggleHelp;
