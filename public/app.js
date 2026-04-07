@@ -47,6 +47,31 @@ function toggleDebugLog() {
 }
 window.toggleDebugLog = toggleDebugLog;
 
+// オフライン検出
+let isOffline = !navigator.onLine;
+
+function updateOnlineStatus() {
+    isOffline = !navigator.onLine;
+    const banner = document.getElementById('offlineBanner');
+    if (banner) {
+        banner.style.display = isOffline ? 'flex' : 'none';
+    }
+    // オフライン時、役割選択画面にいる場合は同期ボタンを無効化
+    const clientBtn = document.querySelector('.client-btn');
+    if (clientBtn) {
+        clientBtn.disabled = isOffline;
+        clientBtn.style.opacity = isOffline ? '0.4' : '1';
+        clientBtn.style.pointerEvents = isOffline ? 'none' : 'auto';
+    }
+    // ホスト画面で接続中に切れた場合の表示
+    if (isOffline && role === 'host' && document.getElementById('hostScreen').classList.contains('active')) {
+        showDebug('オフラインになりました。ソロモードで動作します。');
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
 // 役割選択
 function selectRole(selectedRole) {
     role = selectedRole;
@@ -56,10 +81,16 @@ function selectRole(selectedRole) {
 
     if (role === 'host') {
         document.getElementById('hostScreen').classList.add('active');
-        connectSocket(() => {
-            showDebug('ホストとしてルーム作成中...');
-            socket.emit('createRoom', { hostName: 'ホスト' });
-        });
+        if (isOffline) {
+            // オフライン: ソロモードとして動作（サーバー接続なし）
+            showDebug('オフラインモード: ソロメトロノームとして動作');
+            document.querySelector('.connection-card').style.display = 'none';
+        } else {
+            connectSocket(() => {
+                showDebug('ホストとしてルーム作成中...');
+                socket.emit('createRoom', { hostName: 'ホスト' });
+            });
+        }
     } else {
         document.getElementById('clientScreen').classList.add('active');
         connectSocket(() => {
@@ -524,18 +555,24 @@ function updateBeatVisual(beatNumber) {
 }
 
 function togglePlay() {
-    if (!socket) return;
+    // オフライン or ソケット未接続時はソロモード
+    if (!socket || isOffline) {
+        if (isPlaying) {
+            stopMetronome();
+        } else {
+            const startTime = Date.now() + 200;
+            startMetronome(startTime, false);
+        }
+        return;
+    }
 
     if (isPlaying) {
-        socket.emit('stop'); // 停止命令を送信
-        // 受信側の stop イベントで stopMetronome が呼ばれるのでここでは呼ばなくてよい
-        // ただし自分自身への即時反映のために呼ぶ手もあるが、Socket.ioのブロードキャストで戻ってくるので待つのが安全
+        socket.emit('stop');
     } else {
-        // スタート時はサーバーにリクエスト
         if (role === 'host') {
             socket.emit('start', {
                 settings: settings,
-                includeCountIn: false // カウントイン機能は後で
+                includeCountIn: false
             });
         }
     }
@@ -582,3 +619,6 @@ document.addEventListener('click', async () => {
         showDebug(`AudioContext状態: ${audioContext.state}`);
     }
 });
+
+// 初期ロード時のオフライン状態反映
+updateOnlineStatus();

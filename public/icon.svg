@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- メトロノーム本体 -->
+  <path d="M200 400 L230 160 L282 160 L312 400 Z" fill="rgba(255,255,255,0.9)" rx="8"/>
+  <!-- 振り子 -->
+  <line x1="256" y1="360" x2="310" y2="140" stroke="rgba(255,255,255,0.95)" stroke-width="6" stroke-linecap="round"/>
+  <!-- 振り子の重り -->
+  <circle cx="300" cy="170" r="16" fill="white"/>
+  <!-- 同期を表す波紋 -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3"/>
+  <circle cx="256" cy="256" r="220" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+</svg>

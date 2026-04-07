@@ -1,0 +1,19 @@
+{
+  "name": "Sync Metronome",
+  "short_name": "SyncMetro",
+  "description": "バンド練習用 同期メトロノーム。同一WiFiの端末同士でBPMを完全同期。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
