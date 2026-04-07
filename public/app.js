@@ -15,6 +15,7 @@ let settings = {
     beatUnit: 4
 };
 let timeOffset = 0; // サーバー時刻 - クライアント時刻
+let wakeLock = null; // 画面スリープ防止
 
 // デバッグ情報を画面に表示
 function showDebug(msg) {
@@ -542,17 +543,44 @@ function startMetronome(startTime, includeCountIn) {
 
     scheduler();
     updatePlayButton(true);
+    acquireWakeLock();
 }
 
 function stopMetronome() {
     isPlaying = false;
     clearTimeout(timerID);
-
-    // ここでの socket.emit('stop') は削除（無限ループ防止）
-    // 通信は togglePlay で行う
-
     updatePlayButton(false);
+    releaseWakeLock();
 }
+
+// Wake Lock: 再生中に画面スリープを防止
+async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        showDebug('Wake Lock acquired');
+        wakeLock.addEventListener('release', () => {
+            showDebug('Wake Lock released');
+            wakeLock = null;
+        });
+    } catch (e) {
+        showDebug(`Wake Lock failed: ${e.message}`);
+    }
+}
+
+function releaseWakeLock() {
+    if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+    }
+}
+
+// タブ復帰時にWake Lockを再取得（ブラウザがバックグラウンドから戻った時に失われるため）
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isPlaying && !wakeLock) {
+        acquireWakeLock();
+    }
+});
 
 function scheduler() {
     // 0.1秒先までスケジュール
