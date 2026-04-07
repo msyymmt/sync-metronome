@@ -106,12 +106,17 @@ function selectRole(selectedRole) {
 function connectSocket(onConnected) {
     showDebug('Socket.io 接続開始...');
 
-    // Socket.io のインスタンス作成（自動的に接続）
-    socket = io({
-        reconnection: true,             // 自動再接続
-        reconnectionAttempts: Infinity, // 無限に再試行
-        reconnectionDelay: 1000,        // 1秒ごとに再試行
-        timeout: 20000                  // 20秒でタイムアウト
+    // Capacitorアプリ内かブラウザかを検出し、接続先を決定
+    // ネイティブアプリではローカルファイルからWebViewが起動するため、
+    // Socket.ioサーバーのURLを明示的に指定する必要がある
+    const isNativeApp = window.Capacitor && window.Capacitor.isNativePlatform();
+    const serverUrl = isNativeApp ? 'https://sync-metronome-production.up.railway.app' : undefined;
+
+    socket = io(serverUrl, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        timeout: 20000
     });
 
     socket.on('connect', () => {

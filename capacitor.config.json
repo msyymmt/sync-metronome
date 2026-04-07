@@ -1,0 +1,12 @@
+{
+  "appId": "com.antigravity.syncmetronome",
+  "appName": "Sync Metronome",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#1a1a2e"
+  }
+}
