@@ -124,14 +124,12 @@ function connectSocket(onConnected) {
 
     socket.on('disconnect', (reason) => {
         showDebug(`⚠️ 切断されました: ${reason}`);
+        stopPeriodicSync();
     });
 
-    socket.on('disconnect', (reason) => {
-        showDebug(`⚠️ 切断されました: ${reason}`);
-    });
-
-    // 時刻同期開始
+    // 時刻同期開始 + 定期再同期
     calculateOffset();
+    startPeriodicSync();
 
     // --- イベントハンドラ ---
 
@@ -210,50 +208,87 @@ function connectSocket(onConnected) {
     // (以前の syncPong ハンドラは削除)
 }
 
-// 時刻同期処理 (NTPライク)
+// 時刻同期処理 (NTPライク、改良版)
+// - 10サンプル計測、IQR外れ値除外
+// - performance.now()で高精度タイムスタンプ
+// - 30秒ごとに定期再同期
+let syncIntervalId = null;
+const SYNC_INTERVAL_MS = 30000; // 30秒
+const SYNC_SAMPLE_COUNT = 10;
+
 async function calculateOffset() {
-    showDebug('時刻同期を開始します...');
+    if (!socket || !socket.connected) return;
+    showDebug('時刻同期を開始...');
     const samples = [];
 
-    // 5回計測してRTTが最小のものを採用
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < SYNC_SAMPLE_COUNT; i++) {
         const result = await new Promise(resolve => {
-            const t0 = Date.now();
-            socket.emit('syncPing', { clientTime: t0 });
+            const t0 = performance.now();
+            const wallT0 = Date.now();
+            socket.emit('syncPing', { clientTime: wallT0 });
 
             socket.once('syncPong', (data) => {
-                const t1 = Date.now();
-                const rtt = t1 - t0;
-                // サーバー時刻 = 受信時のサーバー時刻 + 行きの通信時間(RTT/2)
+                const t1 = performance.now();
+                const wallT1 = Date.now();
+                const rtt = t1 - t0; // performance.now()で高精度RTT計測
                 const estimatedServerTime = data.serverTime + (rtt / 2);
-                const offset = estimatedServerTime - t1;
+                const offset = estimatedServerTime - wallT1;
                 resolve({ rtt, offset });
             });
 
-            // タイムアウト設定(1秒)
             setTimeout(() => resolve(null), 1000);
         });
 
         if (result) {
             samples.push(result);
-            // ログは出しすぎると邪魔なので最小限に
-            // showDebug(`Sync[${i}]: RTT=${result.rtt}ms Offset=${result.offset}ms`);
-            await new Promise(r => setTimeout(r, 100)); // 間隔を空ける
+            await new Promise(r => setTimeout(r, 80));
         }
     }
 
-    if (samples.length > 0) {
-        // RTTが最小のサンプルを採用
-        samples.sort((a, b) => a.rtt - b.rtt);
-        const best = samples[0];
-        timeOffset = best.offset;
-        showDebug(`✅ 時刻同期完了: 補正値 ${timeOffset.toFixed(0)}ms (RTT: ${best.rtt}ms)`);
+    if (samples.length < 3) {
+        showDebug('⚠️ 時刻同期: サンプル不足');
+        return;
+    }
 
-        // 画面にも表示
-        const syncInfo = document.getElementById('syncOffset');
-        if (syncInfo) syncInfo.textContent = `Sync offset: ${timeOffset.toFixed(0)}ms`;
-    } else {
-        showDebug('⚠️ 時刻同期に失敗しました');
+    // IQR（四分位範囲）で外れ値を除外
+    samples.sort((a, b) => a.rtt - b.rtt);
+    const q1Index = Math.floor(samples.length * 0.25);
+    const q3Index = Math.floor(samples.length * 0.75);
+    const q1Rtt = samples[q1Index].rtt;
+    const q3Rtt = samples[q3Index].rtt;
+    const iqr = q3Rtt - q1Rtt;
+    const upperBound = q3Rtt + 1.5 * iqr;
+
+    const filtered = samples.filter(s => s.rtt <= upperBound);
+
+    if (filtered.length === 0) {
+        showDebug('⚠️ 時刻同期: 有効サンプルなし');
+        return;
+    }
+
+    // フィルタ後のRTT最小サンプルを採用（最も信頼性が高い）
+    const best = filtered[0];
+    timeOffset = best.offset;
+    showDebug(`✅ 同期完了: offset=${timeOffset.toFixed(0)}ms RTT=${best.rtt.toFixed(0)}ms (${filtered.length}/${samples.length}サンプル有効)`);
+
+    const syncInfo = document.getElementById('syncOffset');
+    if (syncInfo) syncInfo.textContent = `Sync: ${timeOffset.toFixed(0)}ms (RTT ${best.rtt.toFixed(0)}ms)`;
+}
+
+// 定期再同期の開始・停止
+function startPeriodicSync() {
+    stopPeriodicSync();
+    syncIntervalId = setInterval(() => {
+        if (socket && socket.connected) {
+            calculateOffset();
+        }
+    }, SYNC_INTERVAL_MS);
+}
+
+function stopPeriodicSync() {
+    if (syncIntervalId) {
+        clearInterval(syncIntervalId);
+        syncIntervalId = null;
     }
 }
 
@@ -491,17 +526,19 @@ function startMetronome(startTime, includeCountIn) {
     isPlaying = true;
     currentBeat = 0;
 
-    // サーバー時刻を使って正確な残時間を計算
+    // サーバー時刻ベースの開始時刻をAudioContext時刻に変換
+    // Date.now() + timeOffset ≈ サーバー時刻（現在）
+    // startTime はサーバー時刻での開始予定時刻
+    // delay = 開始予定までの秒数
     const serverNow = Date.now() + timeOffset;
-    const delay = (startTime - serverNow) / 1000;
+    const delaySec = (startTime - serverNow) / 1000;
 
-    showDebug(`開始まで: ${delay.toFixed(3)}秒 (補正済)`);
+    // AudioContext.currentTime に delay を足して、AudioContextの時間軸で開始時刻を決定
+    // これにより Date.now() → AudioContext.currentTime の変換は1回だけ行い、
+    // 以降は全て AudioContext の高精度タイムベースで動作する
+    nextNoteTime = audioContext.currentTime + Math.max(0.02, delaySec);
 
-    // WebAudioはローカル時間で動くので、delayをそのまま足せばOK
-    // (delayがマイナスなら過去なので即時再生ロジックへ)
-    nextNoteTime = Math.max(audioContext.currentTime + 0.05, delay + audioContext.currentTime);
-
-    showDebug(`ローカル再生予約: ${nextNoteTime.toFixed(3)} (現在: ${audioContext.currentTime.toFixed(3)})`);
+    showDebug(`開始まで: ${delaySec.toFixed(3)}秒 → audioTime: ${nextNoteTime.toFixed(3)} (now: ${audioContext.currentTime.toFixed(3)})`);
 
     scheduler();
     updatePlayButton(true);
