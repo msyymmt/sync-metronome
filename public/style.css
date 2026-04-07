@@ -337,16 +337,18 @@ body {
 }
 
 .control-btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border: none;
     border-radius: 50%;
     background: var(--surface);
     color: var(--text);
-    font-size: 22px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
     flex-shrink: 0;
+    font-family: inherit;
 }
 
 .bpm-card .control-btn {
