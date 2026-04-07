@@ -176,9 +176,19 @@ function connectSocket(onConnected) {
 
     socket.on('settingsUpdated', (data) => {
         settings = data.settings;
-        showDebug(`設定更新: BPM ${settings.bpm}`);
         updateUI();
-        resyncScheduler();
+
+        if (isPlaying && data.applyAt) {
+            // サーバー時刻ベースで全端末が同じ瞬間にスケジューラーをリセット
+            const serverNow = Date.now() + timeOffset;
+            const delayMs = Math.max(0, data.applyAt - serverNow);
+            showDebug(`BPM→${settings.bpm} apply in ${delayMs.toFixed(0)}ms`);
+            setTimeout(() => {
+                resyncScheduler();
+            }, delayMs);
+        } else {
+            showDebug(`設定更新: BPM ${settings.bpm}`);
+        }
     });
 
     socket.on('start', (data) => {
@@ -344,10 +354,10 @@ function updateSettings(key, value) {
     if (key === 'bpm') settings.bpm = parseInt(value);
     if (key === 'beatsPerBar') settings.beatsPerBar = parseInt(value);
 
+    // UIのみ即時更新（視覚フィードバック）
     updateUI();
-    resyncScheduler();
 
-    // サーバーに通知
+    // サーバーに送信 → settingsUpdatedが全員に返ってきたタイミングで同時にresync
     if (socket && roomId) {
         socket.emit('updateSettings', { settings: settings });
     }

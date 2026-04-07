@@ -59,11 +59,14 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 設定更新 (BPMなど)
+    // 設定更新 (BPMなど) - 全員が同じ瞬間に切り替えるため、適用時刻を付与
     socket.on('updateSettings', (data) => {
         if (socket.roomId) {
-            socket.to(socket.roomId).emit('settingsUpdated', {
-                settings: data.settings
+            const applyAt = Date.now() + 200; // 200ms後に全員同時適用
+            // ホスト自身にも同じタイミングで適用させる
+            io.in(socket.roomId).emit('settingsUpdated', {
+                settings: data.settings,
+                applyAt: applyAt
             });
         }
     });
