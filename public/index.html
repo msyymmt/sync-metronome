@@ -92,11 +92,15 @@
                     <span id="bpmValue">120</span>
                 </div>
                 <div class="bpm-label">BPM</div>
-                <div class="bpm-controls">
-                    <button class="control-btn" onclick="adjustBpm(-5)">-5</button>
-                    <button class="control-btn" onclick="adjustBpm(-1)">-1</button>
+                <div class="bpm-slider-row">
+                    <span class="slider-label">DOWN</span>
                     <input type="range" id="bpmSlider" min="40" max="240" value="120"
                         oninput="updateBpm(this.value)">
+                    <span class="slider-label">UP</span>
+                </div>
+                <div class="bpm-buttons-row">
+                    <button class="control-btn" onclick="adjustBpm(-5)">-5</button>
+                    <button class="control-btn" onclick="adjustBpm(-1)">-1</button>
                     <button class="control-btn" onclick="adjustBpm(1)">+1</button>
                     <button class="control-btn" onclick="adjustBpm(5)">+5</button>
                 </div>
@@ -164,7 +168,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=21"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').then((reg) => {

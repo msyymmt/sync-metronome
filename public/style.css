@@ -330,33 +330,19 @@ body {
     margin-bottom: 20px;
 }
 
-.bpm-controls {
+.bpm-slider-row {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
-.control-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--text);
-    font-size: 14px;
+.slider-label {
+    font-size: 10px;
     font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
+    letter-spacing: 1px;
+    color: var(--text-dim);
     flex-shrink: 0;
-    font-family: inherit;
-}
-
-.bpm-card .control-btn {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.control-btn:active {
-    background: rgba(255, 255, 255, 0.2);
 }
 
 #bpmSlider {
@@ -375,6 +361,31 @@ body {
     background: var(--coral);
     border-radius: 50%;
     cursor: pointer;
+}
+
+.bpm-buttons-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.control-btn {
+    flex: 1;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+
+.control-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text);
 }
 
 /* ===== Signature ===== */
