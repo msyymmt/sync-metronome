@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sync-metronome-v4';
+const CACHE_NAME = 'sync-metronome-v5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

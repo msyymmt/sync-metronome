@@ -178,6 +178,7 @@ function connectSocket(onConnected) {
         settings = data.settings;
         showDebug(`設定更新: BPM ${settings.bpm}`);
         updateUI();
+        resyncScheduler();
     });
 
     socket.on('start', (data) => {
@@ -344,11 +345,20 @@ function updateSettings(key, value) {
     if (key === 'beatsPerBar') settings.beatsPerBar = parseInt(value);
 
     updateUI();
+    resyncScheduler();
 
     // サーバーに通知
     if (socket && roomId) {
         socket.emit('updateSettings', { settings: settings });
     }
+}
+
+// 再生中にBPM/拍子が変わった時、スケジューラーのタイミングを現在時刻から再計算
+function resyncScheduler() {
+    if (!isPlaying || !audioContext) return;
+    // 次のビートを現在時刻の直後に再スケジュール
+    nextNoteTime = audioContext.currentTime + 0.02;
+    showDebug(`Scheduler resync: BPM=${settings.bpm}`);
 }
 
 function updateUI() {
