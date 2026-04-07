@@ -363,12 +363,12 @@ function updateSettings(key, value) {
     }
 }
 
-// 再生中にBPM/拍子が変わった時、スケジューラーのタイミングを現在時刻から再計算
+// 再生中にBPM/拍子が変わった時、小節の頭から再スタート
 function resyncScheduler() {
     if (!isPlaying || !audioContext) return;
-    // 次のビートを現在時刻の直後に再スケジュール
     nextNoteTime = audioContext.currentTime + 0.02;
-    showDebug(`Scheduler resync: BPM=${settings.bpm}`);
+    currentBeat = 0;
+    showDebug(`Scheduler resync: BPM=${settings.bpm} beat→0`);
 }
 
 function updateUI() {
